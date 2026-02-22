@@ -133,6 +133,12 @@ curl -X POST "http://localhost:8000/api/v1/recognize/file?top_k=3&include_raw=tr
   -F "file=@/path/to/wine_label.png"
 ```
 
+Example
+
+```bash
+curl.exe -X POST "http://localhost:8000/api/v1/recognize/file?top_k=1&include_raw=true" -H "accept: application/json" -F "file=@wine_photos/20260121_171125.jpg"
+```
+
 ---
 
 ### URL Mode

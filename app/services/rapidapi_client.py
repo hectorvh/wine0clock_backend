@@ -226,7 +226,7 @@ class RapidAPIClient:
                     continue
                 except httpx.RequestError as exc:
                     logger.warning("Request error calling RapidAPI | request_id=%s error=%s", request_id, exc)
-                    last_exc = RapidAPIError(f"Request failed: {exc}") from exc
+                    last_exc = RapidAPIError(f"Request failed: {exc}")
                     if attempt == attempts:
                         break
                     continue
