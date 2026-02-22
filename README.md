@@ -21,7 +21,7 @@ A production-ready **FastAPI** backend that accepts wine-bottle images (by file 
 ## Project Structure
 
 ```
-wine-recognition-backend/
+wine0clock_backend/
 ├── app/
 │   ├── __init__.py
 │   ├── main.py              # FastAPI app, CORS, global handlers, probes
@@ -57,11 +57,11 @@ wine-recognition-backend/
 
 ```bash
 # 1. Clone / enter the project
-cd wine-recognition-backend
+cd wine0clock_backend
 
 # 2. Create and activate a virtual environment
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+source .venv/Scripts/activate        # Windows: .venv\Scripts\activate
 
 # 3. Install dependencies
 pip install -r requirements.txt
