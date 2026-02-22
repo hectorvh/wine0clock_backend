@@ -8,13 +8,14 @@ Start the server with:
 import logging
 import sys
 
-from fastapi import FastAPI, Request, status
+from fastapi import Depends, FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api import router
-from app.config import get_settings
+from app.config import Settings, get_settings
 from app.schemas import ErrorDetail
+from app.services.rapidapi_client import RapidAPIClient, RapidAPIError
 
 # ── Logging configuration ─────────────────────────────────────────────────────
 logging.basicConfig(
@@ -50,6 +51,39 @@ app.add_middleware(
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(router)
+
+
+def _get_rapidapi_client(settings: Settings = Depends(get_settings)) -> RapidAPIClient:
+    """Return RapidAPIClient when credentials are configured."""
+    if not settings.rapidapi_configured:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="RapidAPI credentials are not configured on this server.",
+        )
+    return RapidAPIClient(settings)
+
+
+@app.get("/api/v1/version", tags=["api"], summary="Upstream API version (GET).")
+async def api_version(client: RapidAPIClient = Depends(_get_rapidapi_client)):
+    """GET the wine-recognition2 API version from RapidAPI. Uses GET (no body)."""
+    try:
+        return await client.get_version()
+    except RapidAPIError as exc:
+        logger.warning("Version endpoint upstream error: %s", exc)
+        return JSONResponse(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            content={"error": "upstream_error", "detail": str(exc)},
+        )
+    except Exception as exc:
+        logger.exception("Version endpoint unexpected error")
+        return JSONResponse(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            content={
+                "error": "upstream_error",
+                "detail": f"{type(exc).__name__}: {exc!s}",
+            },
+        )
 
 
 # ── Global exception handlers ─────────────────────────────────────────────────

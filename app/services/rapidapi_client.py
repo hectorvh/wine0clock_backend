@@ -71,8 +71,36 @@ class RapidAPIClient:
             "X-RapidAPI-Key": settings.rapidapi_key,
             "X-RapidAPI-Host": settings.rapidapi_host,
         }
+        self._version_path = settings.rapidapi_version_path
 
     # ── Public helpers ────────────────────────────────────────────────────────
+
+    async def get_version(self) -> dict[str, Any]:
+        """
+        GET the upstream API version (no image/body). Used to verify connectivity.
+        Raises RapidAPIError on non-200, timeout, or invalid response.
+        """
+        url = self._base_url + self._version_path
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    url,
+                    headers=self._auth_headers,
+                    timeout=self._timeout,
+                )
+                if response.status_code != 200:
+                    raise RapidAPIError(
+                        f"Version endpoint returned HTTP {response.status_code}: {response.text[:200]!r}",
+                        status_code=response.status_code,
+                    )
+                try:
+                    return response.json()
+                except ValueError as e:
+                    raise RapidAPIError(f"Version endpoint returned non-JSON: {e}") from e
+        except httpx.TimeoutException as e:
+            raise RapidAPIError(f"Request timed out: {e}") from e
+        except httpx.RequestError as e:
+            raise RapidAPIError(f"Request failed: {e}") from e
 
     async def recognize_file(
         self,
@@ -155,7 +183,12 @@ class RapidAPIClient:
                     )
 
                     if response.status_code == 200:
-                        raw = response.json()
+                        try:
+                            raw = response.json()
+                        except ValueError as e:
+                            raise RapidAPIError(f"Upstream returned invalid JSON: {e}") from e
+                        if not isinstance(raw, dict):
+                            raise RapidAPIError("Upstream response is not a JSON object")
                         candidates = self._parse_candidates(raw)
                         return candidates, raw, elapsed_ms
 
@@ -191,6 +224,12 @@ class RapidAPIClient:
                     if attempt == attempts:
                         break
                     continue
+                except httpx.RequestError as exc:
+                    logger.warning("Request error calling RapidAPI | request_id=%s error=%s", request_id, exc)
+                    last_exc = RapidAPIError(f"Request failed: {exc}") from exc
+                    if attempt == attempts:
+                        break
+                    continue
 
         raise last_exc or RapidAPIError("All retry attempts exhausted.")
 
@@ -217,8 +256,13 @@ class RapidAPIClient:
             for entity in entities:
                 classes: list[dict] = entity.get("classes", [])
                 for cls in classes:
-                    label = cls.get("class", "").strip()
-                    confidence = float(cls.get("score", 0.0))
+                    if not isinstance(cls, dict):
+                        continue
+                    label = (cls.get("class") or "").strip()
+                    try:
+                        confidence = float(cls.get("score") or 0.0)
+                    except (TypeError, ValueError):
+                        confidence = 0.0
                     if label:
                         candidates.append(
                             WineCandidate(label=label, confidence=confidence)

@@ -6,15 +6,19 @@ the service can be deployed to any environment without code changes.
 """
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Resolve .env from project root (parent of app/) so it works regardless of cwd
+_ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 
 
 class Settings(BaseSettings):
     """Typed settings backed by environment variables (and an optional .env file)."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_ENV_PATH if _ENV_PATH.exists() else ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
     )
@@ -27,6 +31,7 @@ class Settings(BaseSettings):
     # The base URL is fixed by api4ai; only the host header varies per tenant.
     rapidapi_base_url: str = "https://wine-recognition2.p.rapidapi.com"
     rapidapi_results_path: str = "/v1/results"
+    rapidapi_version_path: str = "/v1/version"
 
     # ── HTTP client tunables ──────────────────────────────────────────────────
     http_timeout_seconds: float = 10.0   # per-request timeout

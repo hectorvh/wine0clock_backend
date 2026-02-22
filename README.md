@@ -57,7 +57,7 @@ wine0clock_backend/
 
 ```bash
 # 1. Clone / enter the project
-cd wine0clock_backend
+cd wine0clock
 
 # 2. Create and activate a virtual environment
 python -m venv .venv
@@ -102,6 +102,7 @@ Interactive API docs are available at:
 |--------|------|-------------|
 | `GET` | `/health` | Liveness probe |
 | `GET` | `/ready` | Readiness probe (checks credentials) |
+| `GET` | `/api/v1/version` | Upstream wine-recognition2 API version (GET, no body) |
 | `POST` | `/api/v1/recognize/file` | Upload image file (multipart/form-data) |
 | `POST` | `/api/v1/recognize/url` | Recognize from a public image URL |
 
@@ -144,6 +145,14 @@ curl -X POST "http://localhost:8000/api/v1/recognize/url?top_k=5" \
 ```
 
 ---
+
+### Upstream API version (GET)
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/version" -H "accept: application/json"
+```
+
+Uses your configured `RAPIDAPI_KEY` and `RAPIDAPI_HOST`; no request body.
 
 ### Health / Readiness Probes
 
