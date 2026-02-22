@@ -66,6 +66,9 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
+# Saved recognition results (JSON)
+results/
+
 # Logs and temp
 *.log
 logs/

@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     default_top_k: int = 5
     max_top_k: int = 10
 
+    # ── Persist results ───────────────────────────────────────────────────────
+    # Directory to save each recognition response as JSON (e.g. "results").
+    # Relative to project root; set to "" to disable.
+    results_dir: str = "results"
+
     # ── CORS ──────────────────────────────────────────────────────────────────
     # Comma-separated list of allowed origins, e.g. "http://localhost:3000,https://myapp.com"
     frontend_origin: str = "*"

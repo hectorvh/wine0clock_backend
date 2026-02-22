@@ -403,6 +403,35 @@ class TestParsecandidates:
         assert len(candidates) == 1
         assert candidates[0].label == "Real Wine"
 
+    def test_parses_dict_classes_format(self) -> None:
+        """When entity['classes'] is a dict (label -> score), parse into candidates."""
+        response = {
+            "results": [
+                {
+                    "status": {"code": "ok"},
+                    "entities": [
+                        {
+                            "kind": "classes",
+                            "name": "wine-image-classes",
+                            "classes": {
+                                "aldi primitivo": 0.825,
+                                "latentia winery primitivo 2016": 0.77,
+                                "torresanta primitivo": 0.704,
+                            },
+                        }
+                    ],
+                }
+            ]
+        }
+        candidates = RapidAPIClient._parse_candidates(response)
+        assert len(candidates) == 3
+        assert candidates[0].label == "aldi primitivo"
+        assert candidates[0].confidence == pytest.approx(0.825)
+        assert candidates[1].label == "latentia winery primitivo 2016"
+        assert candidates[1].confidence == pytest.approx(0.77)
+        assert candidates[2].label == "torresanta primitivo"
+        assert candidates[2].confidence == pytest.approx(0.704)
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 5. HEALTH / READINESS PROBES

@@ -239,8 +239,9 @@ class RapidAPIClient:
         Extract ``WineCandidate`` objects from the api4ai response envelope.
 
         The api4ai response wraps entities inside ``results[*].entities``.
-        Each entity with ``kind == "wine"`` contains a ``classes`` list of
-        ``{class: str, score: float}`` objects.
+        Supports two ``classes`` formats:
+        - Dict: ``{ "wine name": score_float, ... }`` (label → score).
+        - List: ``[{ "class": "wine name", "score": float }, ...]`` (legacy).
         """
         candidates: list[WineCandidate] = []
 
@@ -254,19 +255,34 @@ class RapidAPIClient:
 
             entities: list[dict] = result.get("entities", [])
             for entity in entities:
-                classes: list[dict] = entity.get("classes", [])
-                for cls in classes:
-                    if not isinstance(cls, dict):
-                        continue
-                    label = (cls.get("class") or "").strip()
-                    try:
-                        confidence = float(cls.get("score") or 0.0)
-                    except (TypeError, ValueError):
-                        confidence = 0.0
-                    if label:
-                        candidates.append(
-                            WineCandidate(label=label, confidence=confidence)
-                        )
+                classes_raw = entity.get("classes")
+
+                if isinstance(classes_raw, dict):
+                    # Format: {"aldi primitivo": 0.825, "latentia winery ...": 0.77, ...}
+                    for label, score in classes_raw.items():
+                        label = (label or "").strip()
+                        try:
+                            confidence = float(score) if score is not None else 0.0
+                        except (TypeError, ValueError):
+                            confidence = 0.0
+                        if label:
+                            candidates.append(
+                                WineCandidate(label=label, confidence=confidence)
+                            )
+                elif isinstance(classes_raw, list):
+                    # Legacy format: [{"class": "Wine Name", "score": 0.9}, ...]
+                    for cls in classes_raw:
+                        if not isinstance(cls, dict):
+                            continue
+                        label = (cls.get("class") or "").strip()
+                        try:
+                            confidence = float(cls.get("score") or 0.0)
+                        except (TypeError, ValueError):
+                            confidence = 0.0
+                        if label:
+                            candidates.append(
+                                WineCandidate(label=label, confidence=confidence)
+                            )
 
         # Sort descending by confidence (schema validator also does this, but
         # we do it here too so callers of this static method get sorted data).

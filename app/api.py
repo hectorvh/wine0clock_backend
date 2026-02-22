@@ -7,8 +7,8 @@ POST /api/v1/recognize/file  – upload an image file (multipart/form-data)
 POST /api/v1/recognize/url   – supply a publicly reachable image URL
 """
 
+import json
 import logging
-import os
 import uuid
 from pathlib import Path
 from typing import Annotated
@@ -73,6 +73,22 @@ def _validate_upload_file(file: UploadFile, settings: Settings) -> None:
                 f"Allowed: {', '.join(sorted(settings.allowed_extensions))}"
             ),
         )
+
+
+def _save_result_to_file(response: RecognizeResponse, settings: Settings) -> None:
+    """If results_dir is configured, write the response as JSON to {request_id}.json."""
+    if not settings.results_dir or not settings.results_dir.strip():
+        return
+    root = Path(__file__).resolve().parent.parent
+    out_dir = root / settings.results_dir.strip()
+    try:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        path = out_dir / f"{response.request_id}.json"
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(response.model_dump(), f, indent=2, ensure_ascii=False)
+        logger.debug("Saved result to %s", path)
+    except OSError as e:
+        logger.warning("Could not save result to %s: %s", out_dir, e)
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -160,13 +176,15 @@ async def recognize_file(
         elapsed_ms,
     )
 
-    return RecognizeResponse(
+    response = RecognizeResponse(
         request_id=request_id,
         top_candidates=top_candidates,
         candidate_count=len(top_candidates),
         elapsed_ms=round(elapsed_ms, 2),
         raw_response=raw if include_raw else None,
     )
+    _save_result_to_file(response, settings)
+    return response
 
 
 @router.post(
@@ -227,10 +245,12 @@ async def recognize_url(
         elapsed_ms,
     )
 
-    return RecognizeResponse(
+    response = RecognizeResponse(
         request_id=request_id,
         top_candidates=top_candidates,
         candidate_count=len(top_candidates),
         elapsed_ms=round(elapsed_ms, 2),
         raw_response=raw if include_raw else None,
     )
+    _save_result_to_file(response, settings)
+    return response
