@@ -1,0 +1,19 @@
+# ── Core framework ─────────────────────────────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+
+# ── Settings / validation ──────────────────────────────────────────────────────
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# ── HTTP client ───────────────────────────────────────────────────────────────
+httpx==0.28.1
+
+# ── Testing ────────────────────────────────────────────────────────────────────
+pytest==8.3.4
+pytest-asyncio==0.24.0
+httpx==0.28.1          # also used by TestClient internally
+
+# ── Linting / typing (optional, for dev) ──────────────────────────────────────
+# ruff==0.8.4
+# mypy==1.13.0
